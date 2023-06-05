@@ -2,7 +2,7 @@ library(randomForest)
 library(LakeTrophicModelling)
 library(tidyverse)
 
-setwd("P:/R projects/Lakes TMDL modeling/CT Lakes Trophic Estimate Models")
+# setwd("P:/R projects/Lakes TMDL modeling/CT Lakes Trophic Estimate Models")
 
 ## This script will run the GIS random forest model from the Hollister et al 2016
 ## study and NELP study using a new dataset. The new dataset can come in two forms, 
@@ -80,11 +80,20 @@ data2_nelp <- data_og2 %>%
 
 
 ## set up the trophic status breaks for ChlA (Hollister)
-ts_4_brks_chla <- c(min(ltmData$CHLA, na.rm=T) - 1,
+
+# trophic state chla classifications use in EPA National Lakes Assessment (NLA)
+ts_4_brks_chla_epa <- c(min(ltmData$CHLA, na.rm=T) - 1,
                     2,
                     7,
                     30,
                     max(ltmData$CHLA, na.rm=T) + 1)
+
+# trophic state chla classifications use in CT Water Quality Standards (WQS)
+ts_4_brks_chla_ct <- c(min(ltmData$CHLA, na.rm=T) - 1,
+                        2,
+                        15,
+                        30,
+                        max(ltmData$CHLA, na.rm=T) + 1)
 
 ts_4_cats <- c("oligotrophic", "mesotrophic", "eutrophic", "hypertrophic") ## labels for the breaks
 
@@ -104,12 +113,20 @@ pred_table <- predictions_holl %>%
   rownames_to_column() %>% 
   rename(lake = 1, pred_logCHLA_Holl = 2) %>%
   mutate(pred_CHLA_Holl = 10^(pred_logCHLA_Holl)) %>% 
-  mutate(predict_holl = cut(pred_CHLA_Holl, ts_4_brks_chla, ts_4_cats)) %>% 
+  mutate(predict_holl_epa = cut(pred_CHLA_Holl, ts_4_brks_chla_epa, ts_4_cats)) %>%
+  mutate(predict_holl_ct = cut(pred_CHLA_Holl, ts_4_brks_chla_ct, ts_4_cats)) %>%
   left_join(nelp_table, by = "lake") %>% 
   mutate(predictions_nelp = recode(predictions_nelp, 
                                    OM = "oligo/mesotrophic", 
                                    EH = "eu/hypereutrophic"))
-    
+
+
+## Might need to edit this line to export the csv file 
+## to whichever folder you want. otherwise will export to
+## the projects directory. Uncomment the following line
+## and run to export table. 
+
+# write.csv(pred_table, "trophic_prediction_table.csv")    
 
 
 
